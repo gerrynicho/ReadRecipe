@@ -3,6 +3,7 @@ package com.example.readrecipe.ui.screens.detail
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
@@ -41,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,7 +56,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.example.readrecipe.domain.model.Ingredient
 import com.example.readrecipe.ui.theme.ChipBorder
 import com.example.readrecipe.ui.theme.DarkText
 import com.example.readrecipe.ui.theme.GrayText
@@ -74,6 +79,7 @@ fun RecipeDetailScreen(
     val isSaved = viewModel.isSaved
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedIngredient by remember { mutableStateOf<Ingredient?>(null) }
 
     Scaffold(containerColor = Color.White) { innerPadding ->
         if (isLoading) {
@@ -243,7 +249,11 @@ fun RecipeDetailScreen(
                                         )
                                     }
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable { selectedIngredient = ingredient }
+                                            .padding(vertical = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         AsyncImage(
@@ -336,6 +346,84 @@ fun RecipeDetailScreen(
                 }
 
                 Spacer(modifier = Modifier.height(100.dp))
+            }
+        }
+
+        selectedIngredient?.let { ingredient ->
+            IngredientImageDialog(
+                ingredient = ingredient,
+                onDismiss = { selectedIngredient = null }
+            )
+        }
+    }
+}
+
+@Composable
+private fun IngredientImageDialog(
+    ingredient: Ingredient,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        ingredient.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = DarkText,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = GrayText
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFF8F8F8)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = ingredient.imageUrl,
+                        contentDescription = ingredient.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(18.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                if (ingredient.measure.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        ingredient.measure,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SoftOrange,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
