@@ -11,11 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -25,15 +28,79 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.readrecipe.domain.model.Meal
 import com.example.readrecipe.domain.model.MealDetail
 import com.example.readrecipe.ui.theme.DarkText
 import com.example.readrecipe.ui.theme.SoftOrange
 import com.example.readrecipe.ui.theme.WarmGradEnd
 import com.example.readrecipe.ui.theme.WarmGradStart
+import kotlinx.coroutines.delay
+
+data class FeaturedRecipeItem(
+    val id: String,
+    val title: String,
+    val category: String,
+    val area: String,
+    val thumbnail: String
+)
+
+fun MealDetail.toFeaturedRecipeItem(): FeaturedRecipeItem =
+    FeaturedRecipeItem(
+        id = id,
+        title = title,
+        category = category,
+        area = area,
+        thumbnail = thumbnail
+    )
+
+fun Meal.toFeaturedRecipeItem(): FeaturedRecipeItem =
+    FeaturedRecipeItem(
+        id = id,
+        title = title,
+        category = category,
+        area = area,
+        thumbnail = thumbnail
+    )
+
+@Composable
+fun FeaturedRecipeCarousel(
+    meals: List<FeaturedRecipeItem>,
+    onClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (meals.isEmpty()) return
+
+    val pagerState = rememberPagerState(pageCount = { meals.size })
+
+    LaunchedEffect(meals.size) {
+        if (meals.size <= 1) return@LaunchedEffect
+
+        while (true) {
+            delay(4500)
+            if (!pagerState.isScrollInProgress) {
+                val nextPage = (pagerState.currentPage + 1) % meals.size
+                pagerState.animateScrollToPage(nextPage)
+            }
+        }
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = 12.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) { page ->
+            FeaturedRecipeCard(
+                meal = meals[page],
+                onClick = onClick
+            )
+        }
+    }
+}
 
 @Composable
 fun FeaturedRecipeCard(
-    meal: MealDetail,
+    meal: FeaturedRecipeItem,
     onClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {

@@ -24,7 +24,7 @@ class HomeViewModel(
         private set
     var mealsForCategory by mutableStateOf<List<Meal>>(emptyList())
         private set
-    var featuredMeal by mutableStateOf<MealDetail?>(null)
+    var featuredMeals by mutableStateOf<List<MealDetail>>(emptyList())
         private set
     var currentUser by mutableStateOf<UserEntity?>(null)
         private set
@@ -72,8 +72,8 @@ class HomeViewModel(
                 .onFailure { error = it.message }
             isLoadingCategories = false
 
-            recipeRepository.getRandomMeal()
-                .onSuccess { featuredMeal = it }
+            recipeRepository.getRandomMeals(FEATURED_MEAL_COUNT)
+                .onSuccess { featuredMeals = it }
         }
     }
 
@@ -105,7 +105,8 @@ class HomeViewModel(
 
     fun refreshFeatured() {
         viewModelScope.launch {
-            recipeRepository.getRandomMeal().onSuccess { featuredMeal = it }
+            recipeRepository.getRandomMeals(FEATURED_MEAL_COUNT)
+                .onSuccess { featuredMeals = it }
         }
     }
 
@@ -116,5 +117,9 @@ class HomeViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             HomeViewModel(recipeRepository, authRepository) as T
+    }
+
+    private companion object {
+        const val FEATURED_MEAL_COUNT = 5
     }
 }

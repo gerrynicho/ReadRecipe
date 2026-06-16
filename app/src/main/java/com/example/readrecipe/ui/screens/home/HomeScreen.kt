@@ -30,8 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.readrecipe.ui.components.CategoryChip
-import com.example.readrecipe.ui.components.FeaturedRecipeCard
+import com.example.readrecipe.ui.components.FeaturedRecipeCarousel
 import com.example.readrecipe.ui.components.RecipeCard
+import com.example.readrecipe.ui.components.toFeaturedRecipeItem
 import com.example.readrecipe.ui.theme.DarkText
 import com.example.readrecipe.ui.theme.GrayText
 import com.example.readrecipe.ui.theme.SoftOrange
@@ -45,11 +46,16 @@ fun HomeScreen(
     val categories = viewModel.categories
     val selectedCategory = viewModel.selectedCategory
     val meals = viewModel.mealsForCategory
-    val featuredMeal = viewModel.featuredMeal
+    val featuredMeals = viewModel.featuredMeals
     val isLoading = viewModel.isLoadingMeals
     val savedMealIds = viewModel.savedMealIds
 
     val userName = currentUser?.name ?: "Food Lover"
+    val featuredRecipeItems = if (featuredMeals.isNotEmpty()) {
+        featuredMeals.map { it.toFeaturedRecipeItem() }
+    } else {
+        meals.take(5).map { it.toFeaturedRecipeItem() }
+    }
 
     Scaffold(containerColor = Color.White) { innerPadding ->
         Column(
@@ -97,18 +103,18 @@ fun HomeScreen(
                 }
 
                 // Featured section
-                if (featuredMeal != null) {
+                if (featuredRecipeItems.isNotEmpty()) {
                     Text(
-                        "Featured Recipe",
+                        "Featured Recipes",
                         style = MaterialTheme.typography.titleMedium,
                         color = DarkText,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    FeaturedRecipeCard(
-                        meal = featuredMeal,
-                        onClick = { onRecipeClick(featuredMeal.id) },
+                    FeaturedRecipeCarousel(
+                        meals = featuredRecipeItems,
+                        onClick = { mealId -> onRecipeClick(mealId) },
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
                     Spacer(modifier = Modifier.height(24.dp))

@@ -58,6 +58,29 @@ class RecipeRepository(
         Result.failure(e)
     }
 
+    suspend fun getRandomMeals(count: Int): Result<List<MealDetail>> = try {
+        val meals = mutableListOf<MealDetail>()
+        var attempts = 0
+        val maxAttempts = count * 3
+
+        while (meals.size < count && attempts < maxAttempts) {
+            attempts++
+            val dto = api.getRandomMeal().meals?.firstOrNull() ?: continue
+            val meal = dto.toMealDetail()
+            if (meals.none { it.id == meal.id }) {
+                meals.add(meal)
+            }
+        }
+
+        if (meals.isEmpty()) {
+            Result.failure(Exception("No meals returned"))
+        } else {
+            Result.success(meals)
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     fun getSavedMeals(): Flow<List<SavedRecipeEntity>> {
         val userId = sessionManager.getLoggedInUserId()
         return savedRecipeDao.getSavedRecipes(userId)
