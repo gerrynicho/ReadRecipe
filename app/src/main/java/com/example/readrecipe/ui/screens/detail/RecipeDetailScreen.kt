@@ -25,12 +25,17 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -39,6 +44,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,11 +60,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.readrecipe.domain.model.Ingredient
+import com.example.readrecipe.domain.model.MealDetail
 import com.example.readrecipe.ui.theme.ChipBorder
 import com.example.readrecipe.ui.theme.DarkText
 import com.example.readrecipe.ui.theme.GrayText
@@ -80,6 +89,7 @@ fun RecipeDetailScreen(
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var selectedIngredient by remember { mutableStateOf<Ingredient?>(null) }
+    var showCookingMode by remember { mutableStateOf(false) }
 
     Scaffold(containerColor = Color.White) { innerPadding ->
         if (isLoading) {
@@ -198,6 +208,30 @@ fun RecipeDetailScreen(
                 }
                 if (meta.isNotEmpty()) {
                     Text(meta, style = MaterialTheme.typography.bodyMedium, color = GrayText)
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Button(
+                    onClick = { showCookingMode = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SoftOrange)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Start Cooking Mode",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -355,6 +389,13 @@ fun RecipeDetailScreen(
                 onDismiss = { selectedIngredient = null }
             )
         }
+
+        if (showCookingMode) {
+            CookingModeDialog(
+                meal = meal,
+                onDismiss = { showCookingMode = false }
+            )
+        }
     }
 }
 
@@ -423,6 +464,270 @@ private fun IngredientImageDialog(
                         color = SoftOrange,
                         fontWeight = FontWeight.SemiBold
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CookingModeDialog(
+    meal: MealDetail,
+    onDismiss: () -> Unit
+) {
+    var checkedIngredients by remember(meal.id) { mutableStateOf<Set<Int>>(emptySet()) }
+    var currentStep by remember(meal.id) { mutableIntStateOf(0) }
+    var selectedCookingSession by remember(meal.id) { mutableIntStateOf(0) }
+    val totalIngredients = meal.ingredients.size
+    val checkedCount = checkedIngredients.size
+    val ingredientProgress = if (totalIngredients == 0) 1f else checkedCount / totalIngredients.toFloat()
+    val steps = meal.steps.ifEmpty { listOf(meal.instructions) }
+    val step = steps.getOrNull(currentStep).orEmpty()
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(18.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Cooking Mode",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = DarkText,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            meal.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = GrayText
+                        )
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = GrayText
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF8F8F8), RoundedCornerShape(16.dp))
+                        .padding(5.dp)
+                ) {
+                    listOf("Ingredients", "Steps").forEachIndexed { index, title ->
+                        val selected = selectedCookingSession == index
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (selected) SoftOrange else Color.Transparent)
+                                .clickable { selectedCookingSession = index }
+                                .padding(vertical = 11.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                title,
+                                color = if (selected) Color.White else GrayText,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFFF8F8F8))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp)
+                    ) {
+                        if (selectedCookingSession == 0) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Ingredients Checklist",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = DarkText,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "$checkedCount/$totalIngredients",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SoftOrange,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            LinearProgressIndicator(
+                                progress = { ingredientProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(50)),
+                                color = SoftOrange,
+                                trackColor = ChipBorder.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            meal.ingredients.forEachIndexed { index, ingredient ->
+                                val checked = checkedIngredients.contains(index)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            checkedIngredients = if (checked) {
+                                                checkedIngredients - index
+                                            } else {
+                                                checkedIngredients + index
+                                            }
+                                        }
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = { isChecked ->
+                                            checkedIngredients = if (isChecked) {
+                                                checkedIngredients + index
+                                            } else {
+                                                checkedIngredients - index
+                                            }
+                                        },
+                                        colors = CheckboxDefaults.colors(
+                                            checkedColor = SoftOrange,
+                                            uncheckedColor = GrayText
+                                        )
+                                    )
+                                    Text(
+                                        ingredient.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (checked) GrayText else DarkText,
+                                        textDecoration = if (checked) TextDecoration.LineThrough else null,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (ingredient.measure.isNotBlank()) {
+                                        Text(
+                                            ingredient.measure,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = SoftOrange,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(
+                                "Step ${currentStep + 1} of ${steps.size}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = SoftOrange,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                step,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = DarkText,
+                                lineHeight = 26.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (selectedCookingSession == 0) {
+                        Text(
+                            "$checkedCount of $totalIngredients ready",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = GrayText,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Button(
+                            onClick = { selectedCookingSession = 1 },
+                            colors = ButtonDefaults.buttonColors(containerColor = SoftOrange),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                "Start Steps",
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    } else {
+                        TextButton(
+                            onClick = { if (currentStep > 0) currentStep-- },
+                            enabled = currentStep > 0
+                        ) {
+                            Text("Previous")
+                        }
+
+                        Text(
+                            "${currentStep + 1}/${steps.size}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = GrayText,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Button(
+                            onClick = {
+                                if (currentStep < steps.lastIndex) {
+                                    currentStep++
+                                } else {
+                                    onDismiss()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = SoftOrange),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                if (currentStep < steps.lastIndex) "Next" else "Finish",
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
             }
         }
