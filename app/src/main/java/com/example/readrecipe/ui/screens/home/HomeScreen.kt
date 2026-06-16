@@ -1,6 +1,7 @@
 package com.example.readrecipe.ui.screens.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,7 +41,8 @@ import com.example.readrecipe.ui.theme.SoftOrange
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onRecipeClick: (String) -> Unit
+    onRecipeClick: (String) -> Unit,
+    onProfileClick: () -> Unit = {}
 ) {
     val currentUser = viewModel.currentUser
     val categories = viewModel.categories
@@ -92,7 +94,8 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .background(SoftOrange.copy(alpha = 0.15f), CircleShape),
+                            .background(SoftOrange.copy(alpha = 0.15f), CircleShape)
+                            .clickable { onProfileClick() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

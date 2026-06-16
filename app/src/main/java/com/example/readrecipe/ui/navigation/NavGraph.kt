@@ -104,6 +104,15 @@ fun NavGraph() {
                     viewModel = homeVm,
                     onRecipeClick = { mealId ->
                         navController.navigate("detail/$mealId")
+                    },
+                    onProfileClick = {
+                        navController.navigate("profile") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 )
             }
